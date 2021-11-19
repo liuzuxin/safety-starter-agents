@@ -26,7 +26,7 @@ setup(
     name='safe_rl',
     packages=['safe_rl'],
     install_requires=[
-        'gym~=0.15.3',
+        'gym~=0.17.2',
         'joblib',
         'matplotlib',
         'mpi4py',
