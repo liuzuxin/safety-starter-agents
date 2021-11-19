@@ -26,7 +26,7 @@ def run_polopt_agent(env_fn,
                      # Experience collection:
                      steps_per_epoch=4000, 
                      epochs=50, 
-                     max_ep_len=1000,
+                     max_ep_len=300,
                      # Discount factors:
                      gamma=0.99, 
                      lam=0.97,
@@ -249,8 +249,10 @@ def run_polopt_agent(env_fn,
     #=========================================================================#
     #  Create session, sync across procs, and set up saver                    #
     #=========================================================================#
-
-    sess = tf.Session()
+    session_conf = tf.ConfigProto(
+      intra_op_parallelism_threads=8,
+      inter_op_parallelism_threads=8)
+    sess = tf.Session(config=session_conf)
     sess.run(tf.global_variables_initializer())
 
     # Sync params across processes
@@ -433,15 +435,15 @@ def run_polopt_agent(env_fn,
         logger.log_tabular('Epoch', epoch)
 
         # Performance stats
-        logger.log_tabular('EpRet', with_min_and_max=True)
-        logger.log_tabular('EpCost', with_min_and_max=True)
+        logger.log_tabular('EpRet', average_only=True)
+        logger.log_tabular('EpCost', average_only=True)
         logger.log_tabular('EpLen', average_only=True)
         logger.log_tabular('CumulativeCost', cumulative_cost)
         logger.log_tabular('CostRate', cost_rate)
 
         # Value function values
-        logger.log_tabular('VVals', with_min_and_max=True)
-        logger.log_tabular('CostVVals', with_min_and_max=True)
+        logger.log_tabular('VVals', average_only=True)
+        logger.log_tabular('CostVVals', average_only=True)
 
         # Pi loss and change
         logger.log_tabular('LossPi', average_only=True)

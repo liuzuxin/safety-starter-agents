@@ -1,10 +1,16 @@
 #!/usr/bin/env python
+import os
+os.environ["KMP_WARNINGS"] = "off" 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # tf log errors only
 import gym 
 import safety_gym
 import safe_rl
 from safe_rl.utils.run_utils import setup_logger_kwargs
 from safe_rl.utils.mpi_tools import mpi_fork
 
+import tensorflow as tf
+import logging
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
 def main(robot, task, algo, seed, exp_name, cpu):
 

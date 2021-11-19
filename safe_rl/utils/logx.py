@@ -11,6 +11,7 @@ import tensorflow as tf
 import os.path as osp, time, atexit, os
 from safe_rl.utils.mpi_tools import proc_id, mpi_statistics_scalar
 from safe_rl.utils.serialization_utils import convert_json
+from tensorboardX import SummaryWriter
 
 color2num = dict(
     gray=30,
@@ -98,15 +99,18 @@ class Logger:
             else:
                 os.makedirs(self.output_dir)
             self.output_file = open(osp.join(self.output_dir, output_fname), 'w')
+            self.summary_writer = SummaryWriter(os.path.join(self.output_dir, 'tb'))
             atexit.register(self.output_file.close)
             print(colorize("Logging data to %s"%self.output_file.name, 'green', bold=True))
         else:
             self.output_dir = None
             self.output_file = None
+            self.summary_writer = None
         self.first_row=True
         self.log_headers = []
         self.log_current_row = {}
         self.exp_name = exp_name
+        # Setup tensor board logging if enabled and MPI root process
 
     def log(self, msg, color='green'):
         """Print a colorized message to stdout."""
@@ -230,6 +234,7 @@ class Logger:
 
         Writes both to stdout, and to the output file.
         """
+        x_axis = "TotalEnvInteracts"
         if proc_id()==0:
             vals = []
             key_lens = [len(key) for key in self.log_headers]
@@ -243,12 +248,25 @@ class Logger:
                 valstr = "%8.3g"%val if hasattr(val, "__float__") else val
                 print(fmt%(key, valstr))
                 vals.append(val)
+                if key == x_axis:
+                    self.steps = val
             print("-"*n_slashes, flush=True)
             if self.output_file is not None:
                 if self.first_row:
                     self.output_file.write("\t".join(self.log_headers)+"\n")
                 self.output_file.write("\t".join(map(str,vals))+"\n")
                 self.output_file.flush()
+
+            if self.summary_writer is not None:
+                for (k, v) in zip(self.log_headers, vals):
+                    if k != x_axis and k != "TotalEnvInteracts" and k != "Epoch":
+                        self.summary_writer.add_scalar(tag=k,
+                                                       scalar_value=v,
+                                                       global_step=self.steps)
+
+                # Flushes the event file to disk. Call this method to make sure
+                # that all pending events have been written to disk.
+                self.summary_writer.flush()
         self.log_current_row.clear()
         self.first_row=False
 

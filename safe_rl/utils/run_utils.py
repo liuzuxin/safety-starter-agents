@@ -3,7 +3,7 @@ import os.path as osp
 
 DEFAULT_DATA_DIR = osp.join(osp.abspath(osp.dirname(osp.dirname(osp.dirname(__file__)))),'data')
 
-def setup_logger_kwargs(exp_name, seed=None, data_dir=None, datestamp=True):
+def setup_logger_kwargs(exp_name, seed=None, data_dir=None, datestamp=False):
 
     # Make base path
     ymd_time = time.strftime("%Y-%m-%d_") if datestamp else ''
