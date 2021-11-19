@@ -2,131 +2,91 @@ import os
 import os.path as osp
 os.environ["KMP_WARNINGS"] = "off" 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # tf log errors only
-
-import ray
-from ray import tune
-
-DATA_DIR = osp.join(osp.dirname(osp.dirname(osp.realpath(__file__))), "data")
-
-ENV_LIST = [
-    'Safexp-CarButton1-v0',
-    'Safexp-PointButton1-v0',
-]
-
-EXP_CONFIG = dict(
-    env=tune.grid_search(ENV_LIST),
-    policy=tune.grid_search(["ppo_lagrangian", 'trpo_lagrangian', 'cpo']),
-    cost_limit=tune.grid_search([10, 30]),
-    seed=tune.grid_search([0, 11, 22]),
-)
+import gym 
+import safety_gym
+import bullet_safety_gym
+import safe_rl
+from safe_rl.utils.run_utils import setup_logger_kwargs
+from safe_rl.utils.mpi_tools import mpi_fork
 
 EXP_NAME_KEYS = {}
 DATA_DIR_KEYS = {"cost_limit": "cost"}
 DATA_DIR_SUFFIX = "_benchmark_mf"
 
-
-def gen_exp_name(config: dict):
-    name = config["policy"]
-    for k in EXP_NAME_KEYS:
-        name += '_' + EXP_NAME_KEYS[k] + '_' + str(config[k])
-    return name
+DATA_DIR = osp.join(osp.dirname(osp.dirname(osp.realpath(__file__))), "data")
 
 
-def gen_data_dir_name(config: dict):
-    name = config["env"]
-    for k in DATA_DIR_KEYS:
-        name += '_' + DATA_DIR_KEYS[k] + '_' + str(config[k])
+def gen_data_dir_name(env, cost):
+    name = env + '_' + "cost" + '_' + str(cost)
     return name + DATA_DIR_SUFFIX
 
-def trial_name_creator(trial):
-    config = trial.config
-    name = config["env"]
-    for k in DATA_DIR_KEYS:
-        name += '_' + DATA_DIR_KEYS[k] + '_' + str(config[k])
-    return name + DATA_DIR_SUFFIX + '_' + config["policy"]
+def train(robot, task, cpu, seed, algo, cost_lim = 20):
+    # Hyperparameters
+    exp_name = algo + '_' + robot + task
+    if task == 'Circle':
+        env_name = 'Safety'+robot+task+'-v0'
+        max_ep_len = 300
+    else:
+        env_name = 'Safexp-'+robot+task+'-v0'
+        max_ep_len = 400
 
-def trainable(config):
-    from safe_rl import ppo, ppo_lagrangian, trpo, trpo_lagrangian, cpo
-    import gym 
-    import safety_gym
-    import bullet_safety_gym
-    import safe_rl
-    from safe_rl.utils.run_utils import setup_logger_kwargs
-    # from safe_rl.utils.mpi_tools import mpi_fork
-    seed = config["seed"]
-    policy = config["policy"]
-    env_name = config["env"]
-    cost_lim = config["cost_limit"]
-
-    num_steps = 5e6
+    num_steps = 2e6
     steps_per_epoch = 5000
     epochs = int(num_steps / steps_per_epoch)
     save_freq = 50
     target_kl = 0.01
-    
 
     # Fork for parallelizing
-    # mpi_fork(0)
+    mpi_fork(cpu)
 
     # Prepare Logger
-    exp_name = gen_exp_name(config)
-
-    data_dir = osp.join(DATA_DIR, gen_data_dir_name(config))
+    exp_name = algo
+    data_dir = osp.join(DATA_DIR, gen_data_dir_name(env_name, cost_lim))
     logger_kwargs = setup_logger_kwargs(exp_name, seed, data_dir=data_dir)
 
     # Algo and Env
-    algo = eval(policy)
-
-    if env_name == 'SafetyCarCircle-v0' or env_name == 'SafetyBallCircle-v0':
-        max_ep_len = 300
-    else:
-        max_ep_len = 400
+    algo = eval('safe_rl.'+algo)
 
     algo(env_fn=lambda: gym.make(env_name),
-         ac_kwargs=dict(
-             hidden_sizes=(256, 256),
+        ac_kwargs=dict(
+            hidden_sizes=(256, 256),
             ),
-         epochs=epochs,
-         steps_per_epoch=steps_per_epoch,
-         save_freq=save_freq,
-         max_ep_len=max_ep_len,
-         target_kl=target_kl,
-         cost_lim=cost_lim,
-         seed=seed,
-         logger_kwargs=logger_kwargs
-         )          
+        epochs=epochs,
+        steps_per_epoch=steps_per_epoch,
+        save_freq=save_freq,
+        max_ep_len=max_ep_len,
+        target_kl=target_kl,
+        cost_lim=cost_lim,
+        seed=seed,
+        logger_kwargs=logger_kwargs
+        )
+
+def main(robot, task, cpu):
+
+    # Verify experiment
+    robot_list = ['point', 'car', 'doggo', 'ball']
+    task_list = ['goal1', 'goal2', 'button1', 'button2', 'push1', 'push2', 'circle']
+    algo_list = ['ppo_lagrangian', 'trpo_lagrangian', 'cpo']
+
+    task = task.capitalize()
+    robot = robot.capitalize()
+    assert task.lower() in task_list, "Invalid task"
+    assert robot.lower() in robot_list, "Invalid robot"
+
+    for algo in algo_list:
+        for cost in [10, 30]:
+            for seed in [0, 11, 22]:
+                print("Algo: ", algo)
+                print("seed: ", seed)
+                train(robot, task, cpu, seed, algo, cost)
+
 
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--exp', '-e', type=str, default='exp', help='runner or kl')
-    parser.add_argument('--cpus',
-                        '--cpu',
-                        type=int,
-                        default=16,
-                        help='maximum cpu resources for ray')
-    parser.add_argument('--threads',
-                        '--thread',
-                        type=int,
-                        default=1,
-                        help='maximum threads resources per trial')
-
+    parser.add_argument('--robot', '-r', type=str, default='car')
+    parser.add_argument('--task', '-t', type=str, default='button1')
+    parser.add_argument('--cpu', type=int, default=2)
     args = parser.parse_args()
-
-    ray.init(num_cpus=args.cpus)
-
-    EXP_CONFIG["threads"] = args.threads
-
-    experiment_spec = tune.Experiment(
-        args.exp,
-        trainable,
-        config=EXP_CONFIG,
-        resources_per_trial={
-            "cpu": args.threads,
-            "gpu": 0
-        },
-        trial_name_creator=trial_name_creator,
-    )
-
-    tune.run_experiments(experiment_spec)
+    main(args.robot, args.task, args.cpu)
