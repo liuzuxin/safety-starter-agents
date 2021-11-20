@@ -165,7 +165,7 @@ def mlp_actor_critic(x, a, hidden_sizes=(64,64), activation=tf.tanh,
 
     # default policy builder depends on action space
     if policy is None and isinstance(action_space, Box):
-        policy = mlp_gaussian_policy
+        policy = mlp_squashed_gaussian_policy
     elif policy is None and isinstance(action_space, Discrete):
         policy = mlp_categorical_policy
 
