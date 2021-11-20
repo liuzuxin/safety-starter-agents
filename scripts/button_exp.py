@@ -31,13 +31,13 @@ def train(robot, task, cpu, seed, algo, cost_lim = 20):
         max_ep_len = 400
 
     num_steps = 2e6
-    steps_per_epoch = 5000
+    steps_per_epoch = 4000
     epochs = int(num_steps / steps_per_epoch)
     save_freq = 50
     target_kl = 0.01
 
     # Fork for parallelizing
-    mpi_fork(cpu)
+    mpi_fork(0)
 
     # Prepare Logger
     exp_name = algo

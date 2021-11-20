@@ -55,7 +55,10 @@ def run_polopt_agent(env_fn,
     #=========================================================================#
 
     logger = EpochLogger(**logger_kwargs) if logger is None else logger
-    logger.save_config(locals())
+
+    cc = locals()
+    cc.pop("logger")
+    logger.save_config(cc)
 
     seed += 10000 * proc_id()
     tf.set_random_seed(seed)
