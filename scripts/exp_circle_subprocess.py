@@ -35,7 +35,12 @@ def experiment_button(algo):
                 if pid is None:
                     pass
                 else:
-                    os.kill(pid, signal.SIGTERM)
+                    try:
+                        os.kill(pid, signal.SIGTERM)
+                    except OSError:
+                        pass
+                    else:
+                        pass
 
         import atexit
         atexit.register(kill_child)
