@@ -3,7 +3,7 @@ import subprocess
 
 
 def experiment_button(algo):
-    robot_list = ['point', 'car']
+    robot_list = ['car', 'point']
     task_list = ['button1']
     algo_list = ['ppo_lagrangian', 'trpo_lagrangian', 'cpo']
 
@@ -14,8 +14,8 @@ def experiment_button(algo):
 
     p_list = []
     for robot in robot_list:
-        for cost in [10, 30]:
-            for seed in [0, 11, 22, 33]:
+        for cost in [30, 10]:
+            for seed in [0, 11, 22]:
                 print("Robot: ", robot, " Algo: ", algo, " Seed: ", seed, " Cost: ", cost)
                 command = ['python'] + ['scripts/experiment.py'] + ['--robot'] + [robot] + ['--task'] + [task] + \
                     ['--algo'] + [algo] + ['--cost'] + [str(cost)] + ['--seed'] + [str(seed)]
