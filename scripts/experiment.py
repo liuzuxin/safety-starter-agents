@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import os.path as osp
 os.environ["KMP_WARNINGS"] = "off" 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # tf log errors only
 import gym 
@@ -12,7 +13,17 @@ import tensorflow as tf
 import logging
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
-def main(robot, task, algo, seed, exp_name, cpu):
+DATA_DIR_KEYS = {"cost_limit": "cost"}
+DATA_DIR_SUFFIX = "_benchmark_mf"
+
+DATA_DIR = osp.join(osp.dirname(osp.dirname(osp.realpath(__file__))), "data")
+
+
+def gen_data_dir_name(env, cost):
+    name = env + '_' + "cost" + '_' + str(cost)
+    return name + DATA_DIR_SUFFIX
+
+def main(robot, task, algo, seed, exp_name, cpu, cost):
 
     # Verify experiment
     robot_list = ['point', 'car', 'doggo']
@@ -26,29 +37,34 @@ def main(robot, task, algo, seed, exp_name, cpu):
     assert task.lower() in task_list, "Invalid task"
     assert robot.lower() in robot_list, "Invalid robot"
 
-    # Hyperparameters
     exp_name = algo + '_' + robot + task
-    if robot=='Doggo':
-        num_steps = 1e8
-        steps_per_epoch = 60000
+    if task == 'Circle':
+        env_name = 'Safety'+robot+task+'-v0'
+        max_ep_len = 300
     else:
-        num_steps = 1e7
-        steps_per_epoch = 30000
+        env_name = 'Safexp-'+robot+task+'-v0'
+        max_ep_len = 400
+
+    # Hyperparameters
+    num_steps = 2e6
+    steps_per_epoch = 4000
     epochs = int(num_steps / steps_per_epoch)
     save_freq = 50
     target_kl = 0.01
-    cost_lim = 25
+    cost_lim = cost
 
     # Fork for parallelizing
     mpi_fork(cpu)
 
+    exp_name = algo
+
     # Prepare Logger
-    exp_name = exp_name or (algo + '_' + robot.lower() + task.lower())
-    logger_kwargs = setup_logger_kwargs(exp_name, seed)
+    data_dir = osp.join(DATA_DIR, gen_data_dir_name(env_name, cost_lim))
+    logger_kwargs = setup_logger_kwargs(exp_name, seed, data_dir=data_dir)
 
     # Algo and Env
     algo = eval('safe_rl.'+algo)
-    env_name = 'Safexp-'+robot+task+'-v0'
+
 
     algo(env_fn=lambda: gym.make(env_name),
          ac_kwargs=dict(
@@ -58,6 +74,7 @@ def main(robot, task, algo, seed, exp_name, cpu):
          steps_per_epoch=steps_per_epoch,
          save_freq=save_freq,
          target_kl=target_kl,
+         max_ep_len=max_ep_len,
          cost_lim=cost_lim,
          seed=seed,
          logger_kwargs=logger_kwargs
@@ -71,9 +88,10 @@ if __name__ == '__main__':
     parser.add_argument('--robot', type=str, default='Point')
     parser.add_argument('--task', type=str, default='Goal1')
     parser.add_argument('--algo', type=str, default='ppo')
+    parser.add_argument('--cost', type=int, default=20)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--exp_name', type=str, default='')
     parser.add_argument('--cpu', type=int, default=1)
     args = parser.parse_args()
     exp_name = args.exp_name if not(args.exp_name=='') else None
-    main(args.robot, args.task, args.algo, args.seed, exp_name, args.cpu)
+    main(args.robot, args.task, args.algo, args.seed, exp_name, args.cpu, args.cost)
