@@ -29,10 +29,22 @@ setup(
         'gym~=0.17.2',
         'joblib',
         'matplotlib',
-        'mpi4py',
         'mujoco_py==2.0.2.7',
         'numpy',
         'seaborn==0.8.1',
-        'tensorflow~=1.15',
+        'tensorflow~=1.15.1',
     ],
 )
+
+# mpi4py should be installed via conda
+# conda install -c conda-forge mpi4py
+
+# works well
+# mpi                       1.0                       mpich    conda-forge
+# mpi4py                    2.0.0                    py36_2    conda-forge
+# mpich                     3.4.2              h846660c_100    conda-forge
+
+# works bad
+# mpi                       1.0                     openmpi    conda-forge
+# mpi4py                    3.0.3            py37hd955b32_1
+# openmpi                   4.0.2                hb1b8bf9_1

@@ -10,6 +10,8 @@ import safe_rl
 from safe_rl.utils.run_utils import setup_logger_kwargs
 from safe_rl.utils.mpi_tools import mpi_fork
 
+import time
+
 import tensorflow as tf
 import logging
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
@@ -24,7 +26,7 @@ def gen_data_dir_name(env, cost):
     name = env + '_' + "cost" + '_' + str(cost)
     return name + DATA_DIR_SUFFIX
 
-def main(robot, task, algo, seed, exp_name, cpu, cost):
+def main(robot, task, algo, seed, cpu, cost):
 
     # Verify experiment
     robot_list = ['point', 'car', 'doggo', 'ball']
@@ -94,5 +96,4 @@ if __name__ == '__main__':
     parser.add_argument('--exp_name', type=str, default='')
     parser.add_argument('--cpu', type=int, default=1)
     args = parser.parse_args()
-    exp_name = args.exp_name if not(args.exp_name=='') else None
-    main(args.robot, args.task, args.algo, args.seed, exp_name, args.cpu, args.cost)
+    main(args.robot, args.task, args.algo, args.seed, args.cpu, args.cost)
