@@ -5,6 +5,7 @@ os.environ["KMP_WARNINGS"] = "off"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # tf log errors only
 import gym 
 import safety_gym
+import bullet_safety_gym
 import safe_rl
 from safe_rl.utils.run_utils import setup_logger_kwargs
 from safe_rl.utils.mpi_tools import mpi_fork
@@ -26,8 +27,8 @@ def gen_data_dir_name(env, cost):
 def main(robot, task, algo, seed, exp_name, cpu, cost):
 
     # Verify experiment
-    robot_list = ['point', 'car', 'doggo']
-    task_list = ['goal1', 'goal2', 'button1', 'button2', 'push1', 'push2']
+    robot_list = ['point', 'car', 'doggo', 'ball']
+    task_list = ['goal1', 'goal2', 'button1', 'button2', 'circle', 'push2']
     algo_list = ['ppo', 'ppo_lagrangian', 'trpo', 'trpo_lagrangian', 'cpo']
 
     algo = algo.lower()
