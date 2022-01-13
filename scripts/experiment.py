@@ -29,7 +29,7 @@ def gen_data_dir_name(env, cost):
 def main(robot, task, algo, seed, cpu, cost):
 
     # Verify experiment
-    robot_list = ['point', 'car', 'doggo', 'ball']
+    robot_list = ['point', 'car', 'doggo', 'ball', 'ant']
     task_list = ['goal1', 'goal2', 'button1', 'button2', 'circle', 'push2']
     algo_list = ['ppo', 'ppo_lagrangian', 'trpo', 'trpo_lagrangian', 'cpo']
 
@@ -49,8 +49,8 @@ def main(robot, task, algo, seed, cpu, cost):
         max_ep_len = 400
 
     # Hyperparameters
-    num_steps = 2e6
-    steps_per_epoch = 4000
+    num_steps = 1e7
+    steps_per_epoch = 5000
     epochs = int(num_steps / steps_per_epoch)
     save_freq = 50
     target_kl = 0.01

@@ -2,25 +2,27 @@ import subprocess
 
 
 
-def experiment_button(algo):
-    robot_list = ['car', 'point']
+def experiment_button(algo_):
+    robot_list = ['point']
     task_list = ['button1']
-    algo_list = ['ppo_lagrangian', 'trpo_lagrangian', 'cpo']
+    algo_list = ['ppo_lagrangian', 'trpo_lagrangian', 'cpo', 'trpo']
 
 
     # for algo in algo_list:
-    algo = algo
+    # algo = algo
     task = task_list[0]
 
     p_list = []
     for robot in robot_list:
-        for cost in [30, 10]:
-            for seed in [0, 11, 22]:
-                print("Robot: ", robot, " Algo: ", algo, " Seed: ", seed, " Cost: ", cost)
-                command = ['python'] + ['scripts/experiment.py'] + ['--robot'] + [robot] + ['--task'] + [task] + \
-                    ['--algo'] + [algo] + ['--cost'] + [str(cost)] + ['--seed'] + [str(seed)]
-                p = subprocess.Popen(command)
-                p_list.append(p)
+        for cost in [10]:
+            for algo in algo_list:
+                for task in task_list:
+                    for seed in [0, 11, 22, 33, 44, 55, 66, 77, 88, 99]:
+                        print("Robot: ", robot, " Algo: ", algo, " Seed: ", seed, " Cost: ", cost)
+                        command = ['python'] + ['scripts/experiment.py'] + ['--robot'] + [robot] + ['--task'] + [task] + \
+                            ['--algo'] + [algo] + ['--cost'] + [str(cost)] + ['--seed'] + [str(seed)]
+                        p = subprocess.Popen(command)
+                        p_list.append(p)
 
             global pid_list
             pid_list = [p.pid for p in p_list]
